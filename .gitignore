@@ -1,0 +1,22 @@
+# macOS metadata
+.DS_Store
+._*
+
+# Editor temporary files
+*~
+*.swp
+*.swo
+
+# Original handout archive (the extracted files are tracked below Data/)
+/Data/datalab-handout.tar
+
+# CS:APP Data Lab build outputs
+/Data/datalab-handout/*.o
+/Data/datalab-handout/btest
+/Data/datalab-handout/fshow
+/Data/datalab-handout/ishow
+/Data/datalab-handout/*.dSYM/
+
+# Crash dumps
+/Data/datalab-handout/core
+/Data/datalab-handout/core.*
