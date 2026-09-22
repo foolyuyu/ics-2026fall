@@ -262,8 +262,20 @@ int grayToBinary(int x) {
 int bitCount(int x) {
   // 第一轮错位把奇数位和偶数位相加，得到的数进行第二轮相加（这次11001100-2bit为一个数，错位相加
   // 依次类推，直到加完只剩下一个数
-  int var1 = 0x55 >> ; // 01010101先取奇数位
-  
+  int var1 = (0x55 << 8) + 0x55; // 01010101先取奇数位
+  int mask = (var1 << 16) + var1;
+  int var2 = (mask & x) + (mask & (x >> 1));
+  var1 = (0x33 << 8) + 0x33; //0x0011001100110011
+  mask = (var1 << 16) + var1;
+  var2 = (mask & var2) + (mask & (var2 >> 2));
+  var1 = (0x0F << 8) + 0x0F; //0x0000111100001111
+  mask = (var1 << 16) + var1;
+  var2 = (mask & var2) + (mask & (var2 >> 4));
+  mask = (0xFF << 16) + 0xFF; //0x00000000111111110000000011111111
+  var2 = (mask & var2) + (mask & (var2 >> 8));
+  mask = (0xFF << 8) + 0xFF; //0x1111111111111111
+  int result = (mask & var2) + (mask & (var2 >> 16));
+  return result;
 }
 // Two's complement arithmetic (rating sum 17)
 /* 
@@ -274,7 +286,9 @@ int bitCount(int x) {
  *   Rating: 2
  */
 int isEqual(int x, int y) {
-  return 2;
+  //利用按位异或，如果所有位都相同的话，得到0，其他情况都不是0，再利用!保证相同1，不同0
+  int check = x ^ y; 
+  return !check;
 }
 /* 
  * divpwr2 - Compute x/(2^n), for 0 <= n <= 30
@@ -285,7 +299,14 @@ int isEqual(int x, int y) {
  *   Rating: 2
  */
 int divpwr2(int x, int n) {
-    return 2;
+  // x >> n（在x为正时，如果x为负且有余数，需要加1）
+  /*int reminder = x & ~(~0 << n);
+  return (x >> n) + (!!reminder & (x >> 31));*/
+
+  // 另一种做法：如果是负数，令x-1再去做向负无穷的整数除法，这样对于原本能整除的，算出来的结果也是小了1，这样只需要把负数整体加1就可以了
+  int s = x >> 31
+  return ((x + s) >> n) + (s & 1);
+  
 }
 /* 
  * sign - return 1 if positive, 0 if zero, and -1 if negative
@@ -296,7 +317,10 @@ int divpwr2(int x, int n) {
  *  Rating: 2
  */
 int sign(int x) {
-    return 2;
+  // 如果是非负数x >> 31是0，是负数，x >> 31是-1
+  // 需继续对非负数分类讨论，若是正数 0 + 1,是0的话0 + 0，同时负数不能被影响
+  int s = x >> 31;
+  return s + !!(~s & x);
 }
 /* 
  * addOK - Determine if can compute x+y without overflow
@@ -307,7 +331,11 @@ int sign(int x) {
  *   Rating: 3
  */
 int addOK(int x, int y) {
-  return 2;
+  // 加法溢出中，只存在两种情况，负+负=正 和 正+正=负，即判断xy符号是否一致以及其与结果是否不一致
+  int total = x + y;
+  int x_s = x >> 31, y_s = y >> 31, total_s = total >> 31;
+  int overflow = !(x_s ^ y_s) & (x_s ^ total_s); // 两s进行^运算，一致0，不一致0xFF
+  return !overflow;
 }
 /* 
  * absVal - absolute value of x
@@ -318,7 +346,10 @@ int addOK(int x, int y) {
  *   Rating: 4
  */
 int absVal(int x) {
-  return 2;
+  // 如果不考虑正负，取相反数的方法是按位取反再+1，但是这里面在求绝对值，所以提出符号位很重要
+  // 得到1111or0000，可以借此来进行有符号指导的按位取反
+  int s = x >> 31;
+  return (s ^ x) + (s & 1);
 }
 /*
  * satSub - compute x - y, saturating to Tmax on positive overflow and
@@ -330,7 +361,13 @@ int absVal(int x) {
  *   Rating: 4
  */
 int satSub(int x, int y) {
-  return 2;
+  // 算结果，判断是否溢出，如果溢出了确定类型并生成Max
+  int b = ~y + 1;
+  int result = x + b; //此时就像addOK()一样判断错误类型
+  int x_s = x >> 31, b_s = b >> 31, result_s = result >> 31;
+  int overflow = !(x_s ^ b_s) & (x_s ^ result_s);
+  int max = (1 << 31) + result_s; // 如果result是负数，说明发生了正溢出，result=11...1，返回0x7FF...F
+  return (~overflow & result) + (overflow & max); 
 }
 // Floating point (rating sum 16)
 /* 
@@ -345,14 +382,37 @@ int satSub(int x, int y) {
  *   Rating: 4
  */
 unsigned float_twice(unsigned uf) {
-  return 2;
+  // 乘2相当于e+1，但是special value和denormalized value的行为不太一样
+  // 返回值有可能是，±inf，NaN，正常结果
+  unsigned s = uf & 0x80000000u;
+  unsigned e = uf & 0x7F800000u;
+  unsigned f = uf & 0x007FFFFFu;
+  // 如果uf是NaN，即e位全1，且f位不全为0，就返回原值
+  if (!(e ^ 0x7F800000u) && f) {
+    return uf;
+  }
+  // 如果是inf，直接返回
+  if (!(e ^ 0x7F800000u) && !f) {
+    return uf;
+  }
+  // 如果是denormalized的话，denormalized进位为normalized很自然的和正常的不进位可以相同方式表达
+  if ((!e)){
+    return s + (f << 1); // e位全是0，不用加了
+  } 
+  // 如果是normalized的话，直接指数+1就可以了
+  e = e + 0x00800000u;
+  // 判断是否溢出
+  if (!(e ^ 0x7F800000u)) {
+    return 0x7F800000u + s;
+  }
+  return s + e + f;
 }
 /* 
  * float_f2i - Return bit-level equivalent of expression (int) f
  *   for floating point argument f.
  *   Argument is passed as unsigned int, but
  *   it is to be interpreted as the bit-level representation of a
- *   single-precision floating point value.
+ *   single-precision floating poin「t value.
  *   Anything out of range (including NaN and infinity) should return
  *   0x80000000u.
  *   Legal ops: Any integer/unsigned operations incl. ||, &&. also if, while
@@ -360,7 +420,20 @@ unsigned float_twice(unsigned uf) {
  *   Rating: 4
  */
 int float_f2i(unsigned uf) {
-  return 2;
+  // e=127+23=140时，恰好不需要移位
+  unsigned s = us & 0x80000000u;
+  unsigned e = (uf >> 23) & 0x000000FFu;
+  unsigned f = (uf & 0x007FFFFFu) + 0x00800000u;
+  // inf和NaN
+  if (!(e ^ 0x000000FFu)) {
+    return 0x80000000u;
+  }
+  unsigned move = e + 0xFFFFFF81u + 0xFFFFFFE9; // e - 127 - 23
+  if (move & 0x80000000u) {
+    return f >> (~move + 1);
+  }
+  return f << move;
+
 }
 /* 
  * float_negpwr2 - Return bit-level equivalent of the expression 2.0^-x
@@ -376,7 +449,11 @@ int float_f2i(unsigned uf) {
  *   Rating: 4
  */
 unsigned float_negpwr2(int x) {
-    return 2;
+    // float正数能表达的范围为1*2^(-126-23)=2^-149 ~ 1.11...1*2^128<2^129
+    // 150 = 0b010010110 = 0x00000096u
+    // 如果-149<=x<=-127，denormalized，f位补一个1，其余都为0，e = 0
+    // 如果-126<=x<=128，normalized，f位全0，e = x + 127,
+
 }
 /* 
  * float_greater - Return bit-level equivalent of expression x > y for
