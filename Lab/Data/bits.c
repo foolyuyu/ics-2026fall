@@ -532,10 +532,10 @@ unsigned float_greater(unsigned x, unsigned y) {
   }
   else {
     if (xe > ye) {
-      return 0x00000001u - xs; // 如果是负数，xe=1，返回0
+      return 0x00000001u - xs; // 如果是负数，xs=1，返回0
     }
     else if (xe < ye) {
-      return 0x00000000u + xs; // 如果是负数，xe=1，返回1
+      return 0x00000000u + xs; // 如果是负数，xs=1，返回1
     }
     else {
       if (x > y) {
