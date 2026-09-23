@@ -302,10 +302,16 @@ int divpwr2(int x, int n) {
   /*int reminder = x & ~(~0 << n);
   return (x >> n) + (!!reminder & (x >> 31));*/
 
-  // 另一种做法：如果是负数，令x-1再去做向负无穷的整数除法，这样对于原本能整除的，算出来的结果也是小了1，这样只需要把负数整体加1就可以了
-  int s = x >> 31;
-  return ((x + s) >> n) + (s & 1);
-  
+  // 另一种做法：如果是x负数，令x-1再去做向负无穷的整数除法，这样对于原本能整除的，算出来的结果也是小了1，这样只需要把负数整体加1就可以了
+  // btest出现错误，检查发现居然样例刚好给到了INT_MIN，这个时候如果-1就会直接变成INT_MAX，结果不对,
+  /* int s = x >> 31;
+   * return ((x + s) >> n) + (s & 1) + "((!(s ^ 0x80000000) << 31) >> (n + s))";
+   * 计划加一个""中的内容进行补丁，但是发现n==0时非常难以处理，于是作罢
+   */
+   int s = x >> 31; // 作为掩码，使得bias只在负数生效
+   int bias = s & ((0x01 << n) + s);
+   return (x + bias) >> n; 
+   // 这个好简洁！！
 }
 /* 
  * sign - return 1 if positive, 0 if zero, and -1 if negative
@@ -360,13 +366,21 @@ int absVal(int x) {
  *   Rating: 4
  */
 int satSub(int x, int y) {
+  // btest发现出现错误，查看后我发现自己有一个思维定式：默认符号位是0就一定是正数，而且这个里面有一个很坑的小点，x-y!=x+(-y) -- 正负区域不对称
   // 算结果，判断是否溢出，如果溢出了确定类型并生成Max
-  int b = ~y + 1;
+  /*int b = ~y + 1;
   int result = x + b; //此时就像addOK()一样判断错误类型
   int x_s = x >> 31, b_s = b >> 31, result_s = result >> 31;
-  int overflow = !(x_s ^ b_s) & (x_s ^ result_s);
-  int max = (1 << 31) + result_s; // 如果result是负数，说明发生了正溢出，result=11...1，返回0x7FF...F
+  int overflow = ~(x_s ^ b_s) & (x_s ^ result_s); // FF...F表示发生了溢出
+  后面保持一致 */
+
+  // 整体思路不用变，但是不要多此一举转换符号了，发生溢出的两种情况：正-负=负，负-正=正，
+  int result = x + (~y + 1);
+  int x_s = x >> 31, y_s = y >> 31, result_s = result >> 31;
+  int overflow = (x_s ^ y_s) & (x_s ^ result_s); // FF...F表示发生了溢出
+  int max = (1 << 31) + result_s; // 如果result是负数，说明发生了正溢出，result_s=11...1，返回0x7FF...F
   return (~overflow & result) + (overflow & max); 
+
 }
 // Floating point (rating sum 16)
 /* 
@@ -507,7 +521,7 @@ unsigned float_greater(unsigned x, unsigned y) {
   }
   xs = x >> 31;
   ys = y >> 31;
-  if (!(xs << 1) && !(ys << 1)) {
+  if (!(x << 1) && !(y << 1)) {
     return 0x00000000u; // 考虑+0==-0
   }
   if (xs > ys) {
