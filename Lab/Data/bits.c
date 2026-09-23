@@ -303,7 +303,7 @@ int divpwr2(int x, int n) {
   return (x >> n) + (!!reminder & (x >> 31));*/
 
   // 另一种做法：如果是负数，令x-1再去做向负无穷的整数除法，这样对于原本能整除的，算出来的结果也是小了1，这样只需要把负数整体加1就可以了
-  int s = x >> 31
+  int s = x >> 31;
   return ((x + s) >> n) + (s & 1);
   
 }
@@ -421,19 +421,20 @@ unsigned float_twice(unsigned uf) {
 int float_f2i(unsigned uf) {
   // e=127+23=150时，恰好不需要移位，最多能左移7位（左移>=8就可以返回0x80000000u)，右移24位（右移>=24就可以直接返回0）
   int s = uf >> 31;
+  int e, f, move;
   if (!s) {
     s = 1;
   }
   else {
     s = -1;
   }
-  int e = (uf >> 23) & 0x000000FFu;
-  int f = (uf & 0x007FFFFFu) + 0x00800000u; //因为denormalized实在差很多，后续move也可以过滤掉，所以直接当成normalized处理，补前置1就ok了
+  e = (uf >> 23) & 0x000000FFu;
+  f = (uf & 0x007FFFFFu) + 0x00800000u; //因为denormalized实在差很多，后续move也可以过滤掉，所以直接当成normalized处理，补前置1就ok了
   // inf和NaN
   if (!(e ^ 0x000000FFu)) {
     return 0x80000000u;
   }
-  int move = e - 150; // e - 150，正左移，负右移
+  move = e - 150; // e - 150，正左移，负右移
   if (move <= -24) {
     return 0;
   }
@@ -497,14 +498,15 @@ unsigned float_greater(unsigned x, unsigned y) {
   unsigned ye = y & 0x7F800000u;
   unsigned xf = x & 0x007FFFFFu;
   unsigned yf = y & 0x007FFFFFu;
+  unsigned xs, ys;
   if (xe == 0x7F800000 && xf) {
     return 0x00000000u;
   }
   if (ye == 0x7F800000u && yf) {
     return 0x00000000u;
   }
-  unsigned xs = x >> 31;
-  unsigned ys = y >> 31;
+  xs = x >> 31;
+  ys = y >> 31;
   if (!(xs << 1) && !(ys << 1)) {
     return 0x00000000u; // 考虑+0==-0
   }
