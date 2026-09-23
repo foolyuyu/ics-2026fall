@@ -274,8 +274,7 @@ int bitCount(int x) {
   mask = (0xFF << 16) + 0xFF; //0x00000000111111110000000011111111
   var2 = (mask & var2) + (mask & (var2 >> 8));
   mask = (0xFF << 8) + 0xFF; //0x1111111111111111
-  int result = (mask & var2) + (mask & (var2 >> 16));
-  return result;
+  return (mask & var2) + (mask & (var2 >> 16));
 }
 // Two's complement arithmetic (rating sum 17)
 /* 
@@ -420,20 +419,33 @@ unsigned float_twice(unsigned uf) {
  *   Rating: 4
  */
 int float_f2i(unsigned uf) {
-  // e=127+23=140时，恰好不需要移位
-  unsigned s = us & 0x80000000u;
-  unsigned e = (uf >> 23) & 0x000000FFu;
-  unsigned f = (uf & 0x007FFFFFu) + 0x00800000u;
+  // e=127+23=150时，恰好不需要移位，最多能左移7位（左移>=8就可以返回0x80000000u)，右移24位（右移>=24就可以直接返回0）
+  int s = uf >> 31;
+  if (!s) {
+    s = 1;
+  }
+  else {
+    s = -1;
+  }
+  int e = (uf >> 23) & 0x000000FFu;
+  int f = (uf & 0x007FFFFFu) + 0x00800000u; //因为denormalized实在差很多，后续move也可以过滤掉，所以直接当成normalized处理，补前置1就ok了
   // inf和NaN
   if (!(e ^ 0x000000FFu)) {
     return 0x80000000u;
   }
-  unsigned move = e + 0xFFFFFF81u + 0xFFFFFFE9; // e - 127 - 23
-  if (move & 0x80000000u) {
-    return f >> (~move + 1);
+  int move = e - 150; // e - 150，正左移，负右移
+  if (move <= -24) {
+    return 0;
   }
-  return f << move;
-
+  else if (move < 0) {
+    return (f >> -move) * s;
+  }
+  else if (move <= 7) {
+    return (f << move) * s;
+  }
+  else {
+    return 0x80000000u;
+  }
 }
 /* 
  * float_negpwr2 - Return bit-level equivalent of the expression 2.0^-x
@@ -449,11 +461,23 @@ int float_f2i(unsigned uf) {
  *   Rating: 4
  */
 unsigned float_negpwr2(int x) {
-    // float正数能表达的范围为1*2^(-126-23)=2^-149 ~ 1.11...1*2^128<2^129
-    // 150 = 0b010010110 = 0x00000096u
-    // 如果-149<=x<=-127，denormalized，f位补一个1，其余都为0，e = 0
-    // 如果-126<=x<=128，normalized，f位全0，e = x + 127,
-
+  // float正数能表达的范围为1*2^(-126-23)=2^-149 ~ (2-2^-23)*2^127<2^128，所以-x的范围应该能到-149~127（两端包含）
+  // 如果-149<=-x<=-127，denormalized，f位补一个1，其余都为0，e = 0
+  // 如果-126<=-x<=127，normalized，f位全0，e = -x + 127,
+  if (x > 149) {
+    return 0x00000000u;
+  }
+  else if (x >= 127) {
+    int move = x - 127;
+    return 0x00400000u >> move;
+  }
+  else if (x >= -127) {
+    unsigned e = -x + 127; //-x = e - 127
+    return e << 23;
+  }
+  else {
+    return 0x7F800000u;
+  }
 }
 /* 
  * float_greater - Return bit-level equivalent of expression x > y for
@@ -467,5 +491,46 @@ unsigned float_negpwr2(int x) {
  *   Rating: 4
  */
 unsigned float_greater(unsigned x, unsigned y) {
-  return 2;
+  // 先比较符号，再比较e，再比较f
+  // 最优先的是检查有没有NaN
+  unsigned xe = x & 0x7F800000u;
+  unsigned ye = y & 0x7F800000u;
+  unsigned xf = x & 0x007FFFFFu;
+  unsigned yf = y & 0x007FFFFFu;
+  if (xe == 0x7F800000 && xf) {
+    return 0x00000000u;
+  }
+  if (ye == 0x7F800000u && yf) {
+    return 0x00000000u;
+  }
+  unsigned xs = x >> 31;
+  unsigned ys = y >> 31;
+  if (!(xs << 1) && !(ys << 1)) {
+    return 0x00000000u; // 考虑+0==-0
+  }
+  if (xs > ys) {
+    return 0x00000000u; // x是负y是正
+  }
+  else if (xs < ys) {
+    return 0x00000001u; // x是正y是负
+  }
+  else {
+    if (xe > ye) {
+      return 0x00000001u - xs; // 如果是负数，xe=1，返回0
+    }
+    else if (xe < ye) {
+      return 0x00000000u + xs; // 如果是负数，xe=1，返回1
+    }
+    else {
+      if (x > y) {
+        return 0x00000001u - xs;
+      }
+      else if (x < y) {
+        return 0x00000000u + xs;
+      }
+      else {
+        return 0x00000000u;
+      }
+    }
+  }
 }
