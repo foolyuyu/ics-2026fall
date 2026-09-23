@@ -1,0 +1,8 @@
+{
+    "code-runner.runInTerminal": true,
+    "code-runner.saveFileBeforeRun": true,
+    "code-runner.fileDirectoryAsCwd": true,
+    "code-runner.executorMap": {
+        "c": "mkdir -p build && clang \"$fileName\" -std=c11 -Wall -Wextra -o \"build/$fileNameWithoutExt\" && \"./build/$fileNameWithoutExt\""
+    }
+}

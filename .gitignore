@@ -20,3 +20,9 @@
 # Crash dumps
 /Data/datalab-handout/core
 /Data/datalab-handout/core.*
+
+# Homework C build outputs (used by VS Code Code Runner)
+/Homework/**/build/
+
+# Homework PDF files
+/Homework/**/*.pdf
