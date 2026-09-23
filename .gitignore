@@ -26,3 +26,12 @@
 
 # Homework PDF files
 /Homework/**/*.pdf
+
+# DataLab 
+/Lab/Data/btest
+/Lab/Data/fshow
+/Lab/Data/ishow
+/Lab/Data/*.o
+/Lab/Data/*.dSYM/
+/Lab/Data/core
+/Lab/Data/core.*
