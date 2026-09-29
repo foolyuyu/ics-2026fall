@@ -1,0 +1,11 @@
+#include <stdio.h>
+
+long loop(long x, int n)
+{
+    long result = 0;
+    long mask;
+    for (mask = 1; mask != 0 ; mask << (n & 0xFF)) {
+        result |= (x & mask);
+    }
+    return result;
+}
