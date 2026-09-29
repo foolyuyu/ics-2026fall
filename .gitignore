@@ -7,6 +7,9 @@
 *.swp
 *.swo
 
+# Personal VS Code settings
+/Homework/.vscode/
+
 # Original handout archive (the extracted files are tracked below Data/)
 /Data/datalab-handout.tar
 
