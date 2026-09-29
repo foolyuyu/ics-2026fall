@@ -1,8 +1,6 @@
-#include <stdio.h>
-
 long switch_prob(long x, long n) {
     long result = x;
-    switch(n) {
+    switch (n) {
     case 60:
     case 62:
         result = 8 * x;
@@ -11,13 +9,13 @@ long switch_prob(long x, long n) {
         result = x >> 3;
         break;
     case 64:
-        result = (x << 4) - x;
-        x = result;
+        x = (x << 4) - x;
+        __attribute__((fallthrough));
     case 65:
         x *= x;
+        __attribute__((fallthrough));
     default:
         result = x + 75;
-        break;
     }
     return result;
 }
