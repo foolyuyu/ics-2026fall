@@ -1,7 +1,7 @@
 /* 
  * CS:APP Data Lab 
  * 
- * <[redacted] [redacted]>
+ * <姓名 学号>
  * 
  * bits.c - Source file with your solutions to the Lab.
  *          This is the file you will hand in to your instructor.
