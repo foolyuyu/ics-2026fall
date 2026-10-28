@@ -39,6 +39,9 @@
 # Homework PDF files
 /Homework/**/*.pdf
 
+# Local Arch Lab toolchain and original starter package
+/Homework/10.28/archlab-handout/
+
 # DataLab 
 /Lab/Data/btest
 /Lab/Data/fshow

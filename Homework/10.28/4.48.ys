@@ -1,0 +1,67 @@
+	.pos 0
+	irmovq	stack,%rsp
+	call main
+	halt
+
+	.align 8
+array:
+	.quad 0xbca
+	.quad 0xcba
+	.quad 0xacb
+	.quad 0xcab
+	.quad 0xabc
+	.quad 0xbac
+
+################################################################################
+# You may want to modify this portion
+
+bubble_a:
+	rrmovq %rdi, %rax
+	irmovq $1, %rdx
+	subq %rdx, %rsi
+	addq %rsi, %rsi
+	addq %rsi, %rsi
+	addq %rsi, %rsi
+	addq %rsi, %rax	 #初始化last
+L6:
+	rrmovq %rdi, %rdx
+	subq %rax, %rdx
+	jge L2 			# 跳出外层循环
+	rrmovq %rdi, %rcx #初始化
+L5:
+	rrmovq %rax, %rdx
+	subq  %rcx ,%rdx
+	jle L3 			# 跳出内层循环
+	irmovq $8, %rdx
+	rrmovq %rcx, %r8
+	addq %rdx, %r8
+	mrmovq (%rcx), %rdx
+	rrmovq %rdx, %r9
+	mrmovq (%r8), %r10
+	subq %r10, %rdx
+	cmovge %r9, %r11
+	cmovge %r10, %r9
+	cmovge %r11, %r10
+	rmmovq %r10, (%r8)
+	rmmovq %r9, (%rcx)
+	irmovq $8, %rdx
+	addq %rdx, %rcx		#p++
+	jmp L5
+L3:
+	irmovq $8, %rdx
+	subq %rdx, %rax 	#last--
+	jmp L6
+L2:
+	ret
+
+
+
+
+main:
+	irmovq array, %rdi
+	irmovq $6, %rsi
+	call bubble_a
+	ret
+
+	.pos 0x200
+stack:
