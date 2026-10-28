@@ -7,6 +7,12 @@
 *.swp
 *.swo
 
+# Local Obsidian settings
+.obsidian/
+
+# Local presentation revision notes
+/Discussion/SEQ汇报修改记录.md
+
 # Personal VS Code settings
 /Homework/.vscode/
 
