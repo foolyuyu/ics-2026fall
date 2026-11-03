@@ -23,6 +23,7 @@ and `docs/editor-setup.md` for editor integration.
 - Part A：保留链表迭代求和、递归求和和冒泡排序的实现。
 - Part B：完成 SEQ 的立即数运算扩展与七个教学流水架构。访存值转发优先于同一条 `popq %rsp` 的栈指针更新；`s4b/s4c` 在 M 阶段恢复分支时使用保存的 `M.cnd`，修正模板中误用 `e_cnd` 的地方。
 - Part C：`ncopy.ys` 主循环每次处理八个元素，交错加载以避开 load/use 停顿，尾部按 4/2/1 个元素处理。只使用 caller-save 暂存寄存器，不增加栈空间。
+- 尾部再省去两条无用的指针更新，将最后一个元素改为偏移 16 访问，并把相邻两次长度调整合并。长度 1–64 的测试中，余数为 2/3/6/7 的 32 种长度各省 3 个周期，其余长度不变；平均 CPE 从 8.56995202338131 降至 8.46904921627854。
 - `ncopy.hcl` 从课程提供的 `pipe_std.hcl` 扩展 IOPQ。在 M 阶段保存 ALU 输入、结果与操作码，并在该阶段更新条件码，让后一条 E 阶段分支或条件传送读到正确的条件码，同时把 `alu → reg_cc → cond` 的组合路径拆开。M/W 状态阻止异常之后的条件码更新，架构成本为 3。
 
 ### 运行环境
@@ -50,12 +51,12 @@ and `docs/editor-setup.md` for editor integration.
 | --- | --- |
 | Part A | 3 个程序通过，15 分 |
 | Part B | 8 个提交架构全部通过本地测试，25 分 |
-| Part C | 正确性通过，CPE = 8.56995202338131，AC = 3，60 分 |
+| Part C | 正确性通过，CPE = 8.46904921627854，AC = 3，60 分 |
 
 整体输出：
 
 ```text
-PartA-Correctness=15 PartB-Testbench=25 PartC-CPE=8.56995202338131 ParcC-AC=3 PartC-Performance=60
+PartA-Correctness=15 PartB-Testbench=25 PartC-CPE=8.46904921627854 ParcC-AC=3 PartC-Performance=60
 ```
 
 另用课程 `yas/yis/ysim` 检查了 92 组 ncopy 用例：包括 -1、0、1–9，以及 15/16/17、31/32/33、63/64/65、127/128/129；覆盖全零、全正、带符号极值和固定种子的随机数组，检查复制结果、返回计数、源数组、边界哨兵、callee-save 寄存器和栈。额外检查了紧邻的 OPQ/IOPQ 与分支/条件传送、带符号溢出，以及误预测路径上条件码更新的清除。临时验证文件已删除。
