@@ -1,0 +1,38 @@
+# 王小愚 2500013175
+    .pos 0
+    irmovq stack, %rsp
+    call main
+    halt
+
+    .align 8
+ele1:
+    .quad 0x00d
+    .quad ele2
+ele2:
+    .quad 0x0e0
+    .quad ele3
+ele3:
+    .quad 0xf00
+    .quad 0
+
+
+main:
+    irmovq ele1, %rdi
+    call sum_list
+    ret
+
+
+sum_list:
+    irmovq $0, %rax
+L2:
+    andq %rdi, %rdi
+    je L1               # 如果是null就跳出循环
+    mrmovq (%rdi), %rcx
+    addq %rcx, %rax     # 更新val
+    mrmovq 8(%rdi), %rdi
+    jmp L2
+L1:
+    ret
+
+.pos 0x200
+stack:
