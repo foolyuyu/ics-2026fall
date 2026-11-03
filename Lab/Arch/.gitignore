@@ -1,0 +1,15 @@
+# Assembler output
+*.yo
+
+# Architecture visualizations
+*_dependency_graph.html
+
+# Generated handin archive and staging directory
+/archlab-handin.tar
+/archlab-handin/
+
+# Local editor settings, logs, and crash dumps
+/.vscode/
+*.log
+/core
+/core.*

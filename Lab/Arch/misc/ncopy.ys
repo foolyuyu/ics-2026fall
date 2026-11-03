@@ -1,0 +1,125 @@
+# [redacted] [redacted]
+# Eight-word loop, with paired independent loads before their uses.
+# Copy the remainder with 4/2/1-word blocks to avoid a scalar cleanup loop.
+# Scratch registers are caller-save; the function needs no private stack space.
+# ncopy: eight words per main iteration; staged loads avoid load/use stalls.
+# Remaining words are copied by 4/2/1 blocks; all scratch registers are caller-save.
+# %rdi = src, %rsi = dst, %rdx = len; %rax = positive count.
+ncopy:
+    xorq %rax, %rax
+    andq %rdx, %rdx
+    jle Done
+    iaddq $-8, %rdx
+    jl Tail4
+Loop8:
+    mrmovq 0(%rdi), %r8
+    mrmovq 8(%rdi), %r9
+    rmmovq %r8, 0(%rsi)
+    andq %r8, %r8
+    jle Skip0
+    iaddq $1, %rax
+Skip0:
+    rmmovq %r9, 8(%rsi)
+    andq %r9, %r9
+    jle Skip1
+    iaddq $1, %rax
+Skip1:
+    mrmovq 16(%rdi), %r8
+    mrmovq 24(%rdi), %r9
+    rmmovq %r8, 16(%rsi)
+    andq %r8, %r8
+    jle Skip2
+    iaddq $1, %rax
+Skip2:
+    rmmovq %r9, 24(%rsi)
+    andq %r9, %r9
+    jle Skip3
+    iaddq $1, %rax
+Skip3:
+    mrmovq 32(%rdi), %r8
+    mrmovq 40(%rdi), %r9
+    rmmovq %r8, 32(%rsi)
+    andq %r8, %r8
+    jle Skip4
+    iaddq $1, %rax
+Skip4:
+    rmmovq %r9, 40(%rsi)
+    andq %r9, %r9
+    jle Skip5
+    iaddq $1, %rax
+Skip5:
+    mrmovq 48(%rdi), %r8
+    mrmovq 56(%rdi), %r9
+    rmmovq %r8, 48(%rsi)
+    andq %r8, %r8
+    jle Skip6
+    iaddq $1, %rax
+Skip6:
+    rmmovq %r9, 56(%rsi)
+    andq %r9, %r9
+    jle Skip7
+    iaddq $1, %rax
+Skip7:
+    iaddq $64, %rdi
+    iaddq $64, %rsi
+    iaddq $-8, %rdx
+    jge Loop8
+Tail4:
+    iaddq $4, %rdx
+    jl Tail2
+    mrmovq 0(%rdi), %r8
+    mrmovq 8(%rdi), %r9
+    rmmovq %r8, 0(%rsi)
+    andq %r8, %r8
+    jle Skip8
+    iaddq $1, %rax
+Skip8:
+    rmmovq %r9, 8(%rsi)
+    andq %r9, %r9
+    jle Skip9
+    iaddq $1, %rax
+Skip9:
+    mrmovq 16(%rdi), %r8
+    mrmovq 24(%rdi), %r9
+    rmmovq %r8, 16(%rsi)
+    andq %r8, %r8
+    jle Skip10
+    iaddq $1, %rax
+Skip10:
+    rmmovq %r9, 24(%rsi)
+    andq %r9, %r9
+    jle Skip11
+    iaddq $1, %rax
+Skip11:
+    iaddq $32, %rdi
+    iaddq $32, %rsi
+    iaddq $-4, %rdx
+Tail2:
+    iaddq $2, %rdx
+    jl Tail1
+    mrmovq 0(%rdi), %r8
+    mrmovq 8(%rdi), %r9
+    rmmovq %r8, 0(%rsi)
+    andq %r8, %r8
+    jle Skip12
+    iaddq $1, %rax
+Skip12:
+    rmmovq %r9, 8(%rsi)
+    andq %r9, %r9
+    jle Skip13
+    iaddq $1, %rax
+Skip13:
+    iaddq $16, %rdi
+    iaddq $16, %rsi
+    iaddq $-2, %rdx
+Tail1:
+    iaddq $1, %rdx
+    jl Done
+    mrmovq 0(%rdi), %r8
+    rmmovq %r8, 0(%rsi)
+    andq %r8, %r8
+    jle Skip14
+    iaddq $1, %rax
+Skip14:
+Done:
+    ret

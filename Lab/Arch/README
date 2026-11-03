@@ -1,0 +1,72 @@
+# Arch Lab handout
+
+```
+README            this file
+bin/              prebuilt tools: yas, yis, ysim, ydb, y86-lsp, grader
+architectures/    the .hcl architectures you edit (Part B and Part C)
+misc/             Y86 assembly you write (Part A, Part C), examples.c, ncopy.c, y86-code/
+docs/             hcl-lang.md (HCL language reference), editor-setup.md
+Makefile          run `make handin` to build archlab-handin.tar
+```
+
+You need no Rust toolchain: the tools are prebuilt and read `.hcl` files
+directly. Run a program on an architecture with
+`./bin/ysim <prog>.ys --arch <name>`, check an architecture with
+`./bin/ysim --check architectures/<name>.hcl`, and grade locally with
+`./bin/grader part-a|part-b|part-c`. See `docs/hcl-lang.md` for the language
+and `docs/editor-setup.md` for editor integration.
+
+## 实现与验证
+
+[redacted]，[redacted]。以下命令均在本目录执行。
+
+- Part A：保留链表迭代求和、递归求和和冒泡排序的实现。
+- Part B：完成 SEQ 的立即数运算扩展与七个教学流水架构。访存值转发优先于同一条 `popq %rsp` 的栈指针更新；`s4b/s4c` 在 M 阶段恢复分支时使用保存的 `M.cnd`，修正模板中误用 `e_cnd` 的地方。
+- Part C：`ncopy.ys` 主循环每次处理八个元素，交错加载以避开 load/use 停顿，尾部按 4/2/1 个元素处理。只使用 caller-save 暂存寄存器，不增加栈空间。
+- `ncopy.hcl` 从课程提供的 `pipe_std.hcl` 扩展 IOPQ。在 M 阶段保存 ALU 输入、结果与操作码，并在该阶段更新条件码，让后一条 E 阶段分支或条件传送读到正确的条件码，同时把 `alu → reg_cc → cond` 的组合路径拆开。M/W 状态阻止异常之后的条件码更新，架构成本为 3。
+
+### 运行环境
+
+`bin/` 保留课程原配的六个 **Linux x86-64** 预编译工具，不需要编译或安装 Rust。它们可在课程虚拟机中直接使用，不能作为 macOS 原生程序运行。根目录的两个 `.vsix` 是课程提供的 HCL 编辑器支持和调试扩展，设置方法见 `docs/editor-setup.md`。
+
+`architectures/` 中的基础架构、`misc/` 中的 C 参考程序及 `misc/y86-code/` 测试程序一起保留，便于比较和复现。生成的 `.yo`、依赖图与提交包由 `.gitignore` 排除。
+
+### 验证命令
+
+```sh
+./bin/grader part-a
+./bin/grader part-b
+./bin/ysim --check architectures/ncopy.hcl
+./bin/grader arch ncopy -i
+./bin/grader part-c
+./bin/grader autolab
+```
+
+本版 grader 必须指定子命令，直接运行 `./bin/grader` 只显示帮助；`autolab` 子命令输出整体评分结果。
+
+2026-11-03 在课程虚拟机上的本地结果：
+
+| 项目 | 结果 |
+| --- | --- |
+| Part A | 3 个程序通过，15 分 |
+| Part B | 8 个提交架构全部通过本地测试，25 分 |
+| Part C | 正确性通过，CPE = 8.56995202338131，AC = 3，60 分 |
+
+整体输出：
+
+```text
+PartA-Correctness=15 PartB-Testbench=25 PartC-CPE=8.56995202338131 ParcC-AC=3 PartC-Performance=60
+```
+
+另用课程 `yas/yis/ysim` 检查了 92 组 ncopy 用例：包括 -1、0、1–9，以及 15/16/17、31/32/33、63/64/65、127/128/129；覆盖全零、全正、带符号极值和固定种子的随机数组，检查复制结果、返回计数、源数组、边界哨兵、callee-save 寄存器和栈。额外检查了紧邻的 OPQ/IOPQ 与分支/条件传送、带符号溢出，以及误预测路径上条件码更新的清除。临时验证文件已删除。
+
+以上是本地结果。讲义注明 Part B 部分架构在 Autolab 还会与未提供的真值架构逐周期比较，需以服务器结果为准。
+
+### 生成课程提交包
+
+```sh
+make handin
+tar tf archlab-handin.tar
+```
+
+提交包包含 Part A 的 3 个 `.ys`、Part B 的 8 个 `.hcl` 和 Part C 的 2 个文件，共 13 个源码文件。每个文件头均注明姓名和学号，Part C 两个文件还说明了优化方法。提交包保留在本目录，由本人上传课程平台。
