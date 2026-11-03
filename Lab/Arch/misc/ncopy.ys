@@ -1,9 +1,8 @@
 # [redacted] [redacted]
 # Eight-word loop, with paired independent loads before their uses.
-# Copy the remainder with 4/2/1-word blocks to avoid a scalar cleanup loop.
+# Copy the remainder with 4/2/1-word blocks; the last word after a pair uses
+# offset 16, avoiding dead pointer updates and combining length adjustments.
 # Scratch registers are caller-save; the function needs no private stack space.
-# ncopy: eight words per main iteration; staged loads avoid load/use stalls.
-# Remaining words are copied by 4/2/1 blocks; all scratch registers are caller-save.
 # %rdi = src, %rsi = dst, %rdx = len; %rax = positive count.
 ncopy:
     xorq %rax, %rax
@@ -109,9 +108,16 @@ Skip12:
     jle Skip13
     iaddq $1, %rax
 Skip13:
-    iaddq $16, %rdi
-    iaddq $16, %rsi
-    iaddq $-2, %rdx
+    # No more than one word remains. Keep the base pointers and use offset 16.
+    # Combine the old length -= 2 and final length += 1 into length -= 1.
+    iaddq $-1, %rdx
+    jl Done
+    mrmovq 16(%rdi), %r8
+    rmmovq %r8, 16(%rsi)
+    andq %r8, %r8
+    jle Done
+    iaddq $1, %rax
+    ret
 Tail1:
     iaddq $1, %rdx
     jl Done
