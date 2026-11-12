@@ -1,0 +1,21 @@
+# Locally compiled programs and objects
+/csim
+/test-trans
+/tracegen
+/*.o
+
+# Autograder and Valgrind outputs
+/.csim_results
+/.marker
+/trace.all
+/trace.f*
+
+# Submission archives can contain personal identifiers
+/*_handin.tar
+/handin.tar
+
+# Local crash and editor files
+/core
+/core.*
+*.swp
+*~
