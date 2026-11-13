@@ -27,6 +27,97 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
     REQUIRES(M > 0);
     REQUIRES(N > 0);
 
+    int i, j, p, q;
+    int t0, t1, t2, t3, t4, t5, t6, t7;
+
+    if (M == 32 && N == 32) {
+        /* Read each row of an 8x8 block before writing it to B. */
+        for (p = 0; p < 4; ++p) {
+            for (q = 0; q < 4; ++q) {
+                for (i = p * 8; i < (p + 1) * 8; ++i) {
+                    t0 = A[i][q * 8 + 0];
+                    t1 = A[i][q * 8 + 1];
+                    t2 = A[i][q * 8 + 2];
+                    t3 = A[i][q * 8 + 3];
+                    t4 = A[i][q * 8 + 4];
+                    t5 = A[i][q * 8 + 5];
+                    t6 = A[i][q * 8 + 6];
+                    t7 = A[i][q * 8 + 7];
+                    B[q * 8 + 0][i] = t0;
+                    B[q * 8 + 1][i] = t1;
+                    B[q * 8 + 2][i] = t2;
+                    B[q * 8 + 3][i] = t3;
+                    B[q * 8 + 4][i] = t4;
+                    B[q * 8 + 5][i] = t5;
+                    B[q * 8 + 6][i] = t6;
+                    B[q * 8 + 7][i] = t7;
+                }
+            }
+        }
+    } else if (M == 64 && N == 64) {
+        for (q = 0; q < 8; ++q) {
+            for (p = 0; p < 8; p += 2) {
+                /* Stage the two adjacent 8x8 blocks as one 8x16 region. */
+                for (i = 0; i < 16; ++i) {
+                    t0 = A[p * 8 + i][q * 8 + 0];
+                    t1 = A[p * 8 + i][q * 8 + 1];
+                    t2 = A[p * 8 + i][q * 8 + 2];
+                    t3 = A[p * 8 + i][q * 8 + 3];
+                    t4 = A[p * 8 + i][q * 8 + 4];
+                    t5 = A[p * 8 + i][q * 8 + 5];
+                    t6 = A[p * 8 + i][q * 8 + 6];
+                    t7 = A[p * 8 + i][q * 8 + 7];
+                    B[q * 8 + 0][p * 8 + i] = t0;
+                    B[q * 8 + 4][p * 8 + (i + 8) % 16] = t4;
+                    B[q * 8 + 1][p * 8 + i] = t1;
+                    B[q * 8 + 5][p * 8 + (i + 8) % 16] = t5;
+                    B[q * 8 + 2][p * 8 + i] = t2;
+                    B[q * 8 + 6][p * 8 + (i + 8) % 16] = t6;
+                    B[q * 8 + 3][p * 8 + i] = t3;
+                    B[q * 8 + 7][p * 8 + (i + 8) % 16] = t7;
+                }
+
+                /* Restore the lower four rows by swapping the two blocks. */
+                for (i = 4; i < 8; ++i) {
+                    for (j = 0; j < 8; ++j) {
+                        t0 = B[q * 8 + i][p * 8 + j];
+                        B[q * 8 + i][p * 8 + j] =
+                            B[q * 8 + i][p * 8 + j + 8];
+                        B[q * 8 + i][p * 8 + j + 8] = t0;
+                    }
+                }
+            }
+        }
+    } else if (M == 60 && N == 68) {
+        /* Use 16x8 blocks and handle the four remaining columns. */
+        for (p = 0; p < N; p += 16) {
+            for (q = 0; q < M; q += 8) {
+                for (i = p; i < p + 16 && i < N; ++i) {
+                    t0 = A[i][q];
+                    t1 = A[i][q + 1];
+                    t2 = A[i][q + 2];
+                    t3 = A[i][q + 3];
+                    if (q + 7 < M) {
+                        t4 = A[i][q + 4];
+                        t5 = A[i][q + 5];
+                        t6 = A[i][q + 6];
+                        t7 = A[i][q + 7];
+                    }
+                    B[q][i] = t0;
+                    B[q + 1][i] = t1;
+                    B[q + 2][i] = t2;
+                    B[q + 3][i] = t3;
+                    if (q + 7 < M) {
+                        B[q + 4][i] = t4;
+                        B[q + 5][i] = t5;
+                        B[q + 6][i] = t6;
+                        B[q + 7][i] = t7;
+                    }
+                }
+            }
+        }
+    }
+
     ENSURES(is_transpose(M, N, A, B));
 }
 

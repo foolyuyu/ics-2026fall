@@ -8,6 +8,7 @@
 /.csim_results
 /.marker
 /trace.all
+/trace.tmp
 /trace.f*
 
 # Submission archives can contain personal identifiers
