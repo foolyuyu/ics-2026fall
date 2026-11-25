@@ -1,0 +1,5 @@
+Lab/Cache/traces/long.trace filter=lfs diff=lfs merge=lfs -text
+Lab/Data/dlc filter=lfs diff=lfs merge=lfs -text
+*.pptx filter=lfs diff=lfs merge=lfs -text
+Lab/Arch/bin/* filter=lfs diff=lfs merge=lfs -text
+Lab/Arch/y86-debugger-*.vsix filter=lfs diff=lfs merge=lfs -text
